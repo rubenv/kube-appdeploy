@@ -5,6 +5,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/rubenv/kube-appdeploy"
 )
 
 type Target interface {
@@ -13,9 +15,13 @@ type Target interface {
 	Cleanup(items []Manifest) error
 }
 
+// ---------- Folder ----------
+
 type FolderTarget struct {
 	Path string
 }
+
+var _ Target = &FolderTarget{}
 
 func NewFolderTarget(path string) *FolderTarget {
 	return &FolderTarget{
@@ -80,4 +86,27 @@ func (t *FolderTarget) Cleanup(items []Manifest) error {
 	}
 
 	return nil
+}
+
+// ---------- Kubernetes ----------
+
+type KubernetesTarget struct {
+}
+
+var _ Target = &KubernetesTarget{}
+
+func NewKubernetesTarget() *KubernetesTarget {
+	return &KubernetesTarget{}
+}
+
+func (t *KubernetesTarget) Prepare() error {
+	panic("not implemented")
+}
+
+func (t *KubernetesTarget) Apply(m appdeploy.Manifest, data []byte) error {
+	panic("not implemented")
+}
+
+func (t *KubernetesTarget) Cleanup(items []appdeploy.Manifest) error {
+	panic("not implemented")
 }
