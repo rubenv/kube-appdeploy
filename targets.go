@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+var CleanTypes = []string{
+	"deployment",
+	"service",
+	"secret",
+}
+
 type Target interface {
 	Prepare() error
 	Apply(m Manifest, data []byte) error
