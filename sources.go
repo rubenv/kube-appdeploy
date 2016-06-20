@@ -38,9 +38,7 @@ func (s *FolderSource) Names() ([]string, error) {
 	for _, file := range files {
 		name := file.Name()
 		if name == "variables.yaml" {
-			vars := &ProcessVariables{
-				Variables: make(map[string]interface{}),
-			}
+			vars := NewProcessVariables()
 
 			data, err := ioutil.ReadFile(path.Join(s.Path, name))
 			if err != nil {

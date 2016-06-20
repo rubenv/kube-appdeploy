@@ -35,12 +35,35 @@ type ProcessVariables struct {
 	Variables map[string]interface{}
 }
 
+func NewProcessVariables() *ProcessVariables {
+	return &ProcessVariables{
+		Variables: make(map[string]interface{}),
+	}
+}
+
 func Process(src ManifestSource, target Target) error {
 	names, err := src.Names()
 	if err != nil {
 		return err
 	}
 
+	vars, err := src.Variables()
+	if err != nil {
+		return err
+	}
+
+	if vars == nil {
+		vars = NewProcessVariables()
+	}
+
+	// Some variables are special, extract them
+	if v, ok := vars.Variables["namespace"]; ok {
+		if s, ok := v.(string); ok {
+			vars.Namespace = s
+		}
+	}
+
+	// Prepare the target environment
 	err = target.Prepare()
 	if err != nil {
 		return err
@@ -55,7 +78,7 @@ func Process(src ManifestSource, target Target) error {
 		n := name
 		go func() {
 			defer wg.Done()
-			m, e := process(src, n, target)
+			m, e := process(src, vars, n, target)
 			if e != nil {
 				err = e
 			}
@@ -78,17 +101,12 @@ func Process(src ManifestSource, target Target) error {
 	return nil
 }
 
-func process(src ManifestSource, name string, target Target) (*Manifest, error) {
+func process(src ManifestSource, vars *ProcessVariables, name string, target Target) (*Manifest, error) {
 	m, err := src.Get(name)
 	if err != nil {
 		return nil, err
 	}
 	defer m.Close()
-
-	vars, err := src.Variables()
-	if err != nil {
-		return nil, err
-	}
 
 	// Read and parse template
 	data, err := ioutil.ReadAll(m)
@@ -103,7 +121,7 @@ func process(src ManifestSource, name string, target Target) (*Manifest, error) 
 
 	// Execute it
 	var buf bytes.Buffer
-	err = tpl.Execute(&buf, &vars)
+	err = tpl.Execute(&buf, vars)
 	if err != nil {
 		return nil, err
 	}
