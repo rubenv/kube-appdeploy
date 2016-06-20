@@ -1,9 +1,11 @@
 package appdeploy
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 
@@ -171,8 +173,9 @@ func (t *KubernetesTarget) Apply(m Manifest, data []byte) error {
 		"apply", "-f", "-",
 	}
 
-	fmt.Printf("%#v\n", args)
-	panic("not implemented")
+	cmd := exec.Command("kubectl", args...)
+	cmd.Stdin = bytes.NewReader(data)
+	return cmd.Run()
 }
 
 func (t *KubernetesTarget) Cleanup(items []Manifest) error {

@@ -8,16 +8,20 @@ import (
 )
 
 func main() {
-	src := appdeploy.NewFolderSource(os.Args[1])
-	folder := "/Users/ruben/Desktop/out"
-
 	var target appdeploy.Target
+	src := appdeploy.NewFolderSource(os.Args[1])
 
-	if folder == "" {
-		log.Fatal("No output folder specified")
-	}
+	/*
+		folder := "/Users/ruben/Desktop/out"
 
-	target = appdeploy.NewFolderTarget(folder)
+		if folder == "" {
+			log.Fatal("No output folder specified")
+		}
+
+		target = appdeploy.NewFolderTarget(folder)
+	*/
+
+	target = appdeploy.NewKubernetesTarget("vagrant-single")
 
 	err := appdeploy.Process(src, target)
 	if err != nil {
