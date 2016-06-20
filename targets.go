@@ -1,10 +1,15 @@
 package appdeploy
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
+
+	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 )
 
 var CleanTypes = []string{
@@ -95,16 +100,60 @@ func (t *FolderTarget) Cleanup(items []Manifest) error {
 // ---------- Kubernetes ----------
 
 type KubernetesTarget struct {
+	contextName string
+	client      *unversioned.Client
 }
 
 var _ Target = &KubernetesTarget{}
 
-func NewKubernetesTarget() *KubernetesTarget {
+func NewKubernetesTarget(contextName string) *KubernetesTarget {
 	return &KubernetesTarget{}
 }
 
 func (t *KubernetesTarget) Prepare() error {
-	panic("not implemented")
+	po := clientcmd.NewDefaultPathOptions()
+
+	c, err := po.GetStartingConfig()
+	if err != nil {
+		return err
+	}
+
+	context, ok := c.Contexts[t.contextName]
+	if !ok {
+		names := make([]string, 0)
+		for name, _ := range c.Contexts {
+			names = append(names, name)
+		}
+
+		return fmt.Errorf("Unknown context: %s, should be one of: %s", t.contextName, strings.Join(names, ", "))
+	}
+
+	authinfo, ok := c.AuthInfos[context.AuthInfo]
+	if !ok {
+		return fmt.Errorf("Badly configured context, unknown auth: %s", context.AuthInfo)
+	}
+
+	cluster, ok := c.Clusters[context.Cluster]
+	if !ok {
+		return fmt.Errorf("Badly configured context, unknown cluster: %s", context.Cluster)
+	}
+
+	config := &restclient.Config{
+		Host: cluster.Server,
+		TLSClientConfig: restclient.TLSClientConfig{
+			CAFile:   cluster.CertificateAuthority,
+			CertFile: authinfo.ClientCertificate,
+			KeyFile:  authinfo.ClientKey,
+		},
+	}
+
+	client, err := unversioned.New(config)
+	if err != nil {
+		return err
+	}
+
+	t.client = client
+	return nil
 }
 
 func (t *KubernetesTarget) Apply(m Manifest, data []byte) error {
