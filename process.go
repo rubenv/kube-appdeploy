@@ -62,6 +62,9 @@ func Process(src ManifestSource, target Target) error {
 			vars.Namespace = s
 		}
 	}
+	if vars.Namespace == "" {
+		vars.Namespace = "default"
+	}
 
 	// Prepare the target environment
 	err = target.Prepare(vars)
