@@ -5,8 +5,6 @@ import (
 	"os"
 	"path"
 	"strings"
-
-	"github.com/rubenv/kube-appdeploy"
 )
 
 type Target interface {
@@ -103,10 +101,10 @@ func (t *KubernetesTarget) Prepare() error {
 	panic("not implemented")
 }
 
-func (t *KubernetesTarget) Apply(m appdeploy.Manifest, data []byte) error {
+func (t *KubernetesTarget) Apply(m Manifest, data []byte) error {
 	panic("not implemented")
 }
 
-func (t *KubernetesTarget) Cleanup(items []appdeploy.Manifest) error {
+func (t *KubernetesTarget) Cleanup(items []Manifest) error {
 	panic("not implemented")
 }

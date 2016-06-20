@@ -2,7 +2,6 @@ package appdeploy
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -31,21 +30,10 @@ type Metadata struct {
 	Name string
 }
 
-func Process(src ManifestSource, opts Options) error {
+func Process(src ManifestSource, target Target) error {
 	names, err := src.Names()
 	if err != nil {
 		return err
-	}
-
-	var target Target
-
-	switch opts.Mode {
-	case WriteToFolder:
-		if opts.OutputFolder == "" {
-			return errors.New("No output folder specified")
-		}
-
-		target = NewFolderTarget(opts.OutputFolder)
 	}
 
 	err = target.Prepare()
