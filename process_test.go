@@ -63,7 +63,7 @@ type TestTarget struct {
 
 var _ Target = &TestTarget{}
 
-func (t *TestTarget) Prepare() error {
+func (t *TestTarget) Prepare(vars *ProcessVariables) error {
 	t.prepareCalled = true
 	return nil
 }

@@ -64,7 +64,7 @@ func Process(src ManifestSource, target Target) error {
 	}
 
 	// Prepare the target environment
-	err = target.Prepare()
+	err = target.Prepare(vars)
 	if err != nil {
 		return err
 	}

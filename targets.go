@@ -19,7 +19,7 @@ var CleanTypes = []string{
 }
 
 type Target interface {
-	Prepare() error
+	Prepare(vars *ProcessVariables) error
 	Apply(m Manifest, data []byte) error
 	Cleanup(items []Manifest) error
 }
@@ -38,7 +38,7 @@ func NewFolderTarget(path string) *FolderTarget {
 	}
 }
 
-func (t *FolderTarget) Prepare() error {
+func (t *FolderTarget) Prepare(vars *ProcessVariables) error {
 	return os.MkdirAll(t.Path, 0755)
 }
 
@@ -102,6 +102,7 @@ func (t *FolderTarget) Cleanup(items []Manifest) error {
 type KubernetesTarget struct {
 	contextName string
 	client      *unversioned.Client
+	namespace   string
 }
 
 var _ Target = &KubernetesTarget{}
@@ -110,7 +111,8 @@ func NewKubernetesTarget(contextName string) *KubernetesTarget {
 	return &KubernetesTarget{}
 }
 
-func (t *KubernetesTarget) Prepare() error {
+func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
+	// Prepare Kubernetes client
 	po := clientcmd.NewDefaultPathOptions()
 
 	c, err := po.GetStartingConfig()
@@ -153,10 +155,21 @@ func (t *KubernetesTarget) Prepare() error {
 	}
 
 	t.client = client
+
+	// Copy some vars
+	t.namespace = vars.Namespace
+
 	return nil
 }
 
 func (t *KubernetesTarget) Apply(m Manifest, data []byte) error {
+	args := []string{
+		"--context", t.contextName,
+		"--namespace", t.namespace,
+		"apply", "-f", "-",
+	}
+
+	fmt.Printf("%#v\n", args)
 	panic("not implemented")
 }
 
