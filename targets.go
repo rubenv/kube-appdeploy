@@ -108,7 +108,9 @@ type KubernetesTarget struct {
 var _ Target = &KubernetesTarget{}
 
 func NewKubernetesTarget(contextName string) *KubernetesTarget {
-	return &KubernetesTarget{}
+	return &KubernetesTarget{
+		contextName: contextName,
+	}
 }
 
 func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
