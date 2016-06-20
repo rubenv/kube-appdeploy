@@ -36,6 +36,7 @@ func (t *TestSource) Get(name string) (io.ReadCloser, error) {
 kind: Service
 metadata:
   name: test
+  hello: {{ .Variables.name }}
 {{ if false }}
 NOT HERE
 {{ end }}`)
@@ -44,6 +45,14 @@ NOT HERE
 	}
 
 	return buf, nil
+}
+
+func (t *TestSource) Variables() (*ProcessVariables, error) {
+	return &ProcessVariables{
+		Variables: map[string]interface{}{
+			"name": "world",
+		},
+	}, nil
 }
 
 type TestTarget struct {
@@ -86,4 +95,5 @@ func TestProcess(t *testing.T) {
 	is.True(target.cleanupCalled)
 	is.Equal(len(target.applied), 1)
 	is.False(strings.Contains(target.applied["service--test.yaml"], "NOT HERE"))
+	is.True(strings.Contains(target.applied["service--test.yaml"], "hello: world"))
 }

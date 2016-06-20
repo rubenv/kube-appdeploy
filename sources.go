@@ -5,15 +5,21 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+
+	"gopkg.in/yaml.v1"
 )
 
 type ManifestSource interface {
 	Names() ([]string, error)
 	Get(name string) (io.ReadCloser, error)
+	Variables() (*ProcessVariables, error)
 }
 
+var _ ManifestSource = &FolderSource{}
+
 type FolderSource struct {
-	Path string
+	Path      string
+	variables *ProcessVariables
 }
 
 func NewFolderSource(path string) *FolderSource {
@@ -30,8 +36,28 @@ func (s *FolderSource) Names() ([]string, error) {
 
 	names := make([]string, 0)
 	for _, file := range files {
+		name := file.Name()
+		if name == "variables.yaml" {
+			vars := &ProcessVariables{
+				Variables: make(map[string]interface{}),
+			}
+
+			data, err := ioutil.ReadFile(path.Join(s.Path, name))
+			if err != nil {
+				return nil, err
+			}
+
+			err = yaml.Unmarshal(data, vars.Variables)
+			if err != nil {
+				return nil, err
+			}
+
+			s.variables = vars
+			continue
+		}
+
 		if !file.IsDir() {
-			names = append(names, file.Name())
+			names = append(names, name)
 		}
 	}
 
@@ -41,4 +67,8 @@ func (s *FolderSource) Names() ([]string, error) {
 func (s *FolderSource) Get(name string) (io.ReadCloser, error) {
 	path := path.Join(s.Path, name)
 	return os.Open(path)
+}
+
+func (s *FolderSource) Variables() (*ProcessVariables, error) {
+	return s.variables, nil
 }

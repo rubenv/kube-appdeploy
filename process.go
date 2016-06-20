@@ -30,6 +30,11 @@ type Metadata struct {
 	Name string
 }
 
+type ProcessVariables struct {
+	Namespace string
+	Variables map[string]interface{}
+}
+
 func Process(src ManifestSource, target Target) error {
 	names, err := src.Names()
 	if err != nil {
@@ -80,6 +85,11 @@ func process(src ManifestSource, name string, target Target) (*Manifest, error) 
 	}
 	defer m.Close()
 
+	vars, err := src.Variables()
+	if err != nil {
+		return nil, err
+	}
+
 	// Read and parse template
 	data, err := ioutil.ReadAll(m)
 	if err != nil {
@@ -93,7 +103,7 @@ func process(src ManifestSource, name string, target Target) (*Manifest, error) 
 
 	// Execute it
 	var buf bytes.Buffer
-	err = tpl.Execute(&buf, nil)
+	err = tpl.Execute(&buf, &vars)
 	if err != nil {
 		return nil, err
 	}
