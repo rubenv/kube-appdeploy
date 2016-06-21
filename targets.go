@@ -167,17 +167,66 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 }
 
 func (t *KubernetesTarget) Apply(m Manifest, data []byte) error {
-	args := []string{
-		"--context", t.contextName,
-		"--namespace", t.namespace,
-		"apply", "-f", "-",
-	}
-
-	cmd := exec.Command("kubectl", args...)
-	cmd.Stdin = bytes.NewReader(data)
-	return cmd.Run()
+	_, err := t.runKubeCtl(data, "apply", "-f", "-")
+	return err
 }
 
 func (t *KubernetesTarget) Cleanup(items []Manifest) error {
-	panic("not implemented")
+	for _, ct := range CleanTypes {
+		err := t.cleanType(items, ct)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *KubernetesTarget) cleanType(items []Manifest, ct string) error {
+	out, err := t.runKubeCtl(nil, "get", ct, "-o", "name")
+	if err != nil {
+		return err
+	}
+
+	known := []string{}
+	for _, m := range items {
+		if strings.ToLower(m.Kind) == ct {
+			known = append(known, fmt.Sprintf("%s/%s", ct, m.Metadata.Name))
+		}
+	}
+
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	for _, line := range lines {
+		found := false
+		for _, k := range known {
+			if line == k {
+				found = true
+			}
+		}
+
+		if !found {
+			_, err := t.runKubeCtl(nil, "delete", line)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (t *KubernetesTarget) runKubeCtl(stdin []byte, args ...string) (string, error) {
+	args = append([]string{
+		"--context", t.contextName,
+		"--namespace", t.namespace,
+	}, args...)
+
+	cmd := exec.Command("kubectl", args...)
+	if stdin != nil {
+		cmd.Stdin = bytes.NewReader(stdin)
+	}
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
 }
