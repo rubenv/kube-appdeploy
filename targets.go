@@ -11,13 +11,11 @@ import (
 
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 )
 
 var CleanTypes = []string{
 	"deployment",
 	"service",
-	"secret",
 }
 
 type Target interface {
@@ -102,58 +100,21 @@ func (t *FolderTarget) Cleanup(items []Manifest) error {
 // ---------- Kubernetes ----------
 
 type KubernetesTarget struct {
-	contextName string
-	client      *unversioned.Client
-	namespace   string
+	config    *restclient.Config
+	client    *unversioned.Client
+	namespace string
 }
 
 var _ Target = &KubernetesTarget{}
 
-func NewKubernetesTarget(contextName string) *KubernetesTarget {
+func NewKubernetesTarget(config *restclient.Config) *KubernetesTarget {
 	return &KubernetesTarget{
-		contextName: contextName,
+		config: config,
 	}
 }
 
 func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
-	// Prepare Kubernetes client
-	po := clientcmd.NewDefaultPathOptions()
-
-	c, err := po.GetStartingConfig()
-	if err != nil {
-		return err
-	}
-
-	context, ok := c.Contexts[t.contextName]
-	if !ok {
-		names := make([]string, 0)
-		for name, _ := range c.Contexts {
-			names = append(names, name)
-		}
-
-		return fmt.Errorf("Unknown context: %s, should be one of: %s", t.contextName, strings.Join(names, ", "))
-	}
-
-	authinfo, ok := c.AuthInfos[context.AuthInfo]
-	if !ok {
-		return fmt.Errorf("Badly configured context, unknown auth: %s", context.AuthInfo)
-	}
-
-	cluster, ok := c.Clusters[context.Cluster]
-	if !ok {
-		return fmt.Errorf("Badly configured context, unknown cluster: %s", context.Cluster)
-	}
-
-	config := &restclient.Config{
-		Host: cluster.Server,
-		TLSClientConfig: restclient.TLSClientConfig{
-			CAFile:   cluster.CertificateAuthority,
-			CertFile: authinfo.ClientCertificate,
-			KeyFile:  authinfo.ClientKey,
-		},
-	}
-
-	client, err := unversioned.New(config)
+	client, err := unversioned.New(t.config)
 	if err != nil {
 		return err
 	}
@@ -196,6 +157,10 @@ func (t *KubernetesTarget) cleanType(items []Manifest, ct string) error {
 
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
 		found := false
 		for _, k := range known {
 			if line == k {
@@ -215,10 +180,7 @@ func (t *KubernetesTarget) cleanType(items []Manifest, ct string) error {
 }
 
 func (t *KubernetesTarget) runKubeCtl(stdin []byte, args ...string) (string, error) {
-	args = append([]string{
-		"--context", t.contextName,
-		"--namespace", t.namespace,
-	}, args...)
+	args = append(t.configArgs(), args...)
 
 	cmd := exec.Command("kubectl", args...)
 	if stdin != nil {
@@ -229,4 +191,29 @@ func (t *KubernetesTarget) runKubeCtl(stdin []byte, args ...string) (string, err
 		return "", err
 	}
 	return string(out), nil
+}
+
+func (t *KubernetesTarget) configArgs() []string {
+	args := []string{
+		"--namespace", t.namespace,
+	}
+
+	cfg := t.config
+	if cfg.Host != "" {
+		args = append(args, "--server", cfg.Host)
+	}
+	if cfg.CAFile != "" {
+		args = append(args, "--certificate-authority", cfg.CAFile)
+	}
+	if cfg.CertFile != "" {
+		args = append(args, "--client-certificate", cfg.CertFile)
+	}
+	if cfg.CertFile != "" {
+		args = append(args, "--client-key", cfg.KeyFile)
+	}
+	if cfg.BearerToken != "" {
+		args = append(args, "--token", cfg.BearerToken)
+	}
+
+	return args
 }

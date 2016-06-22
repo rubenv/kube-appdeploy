@@ -1,13 +1,25 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"strings"
+
+	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
 	"github.com/rubenv/kube-appdeploy"
 )
 
 func main() {
+	err := do()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func do() error {
 	var target appdeploy.Target
 	src := appdeploy.NewFolderSource(os.Args[1])
 
@@ -21,10 +33,46 @@ func main() {
 		target = appdeploy.NewFolderTarget(folder)
 	*/
 
-	target = appdeploy.NewKubernetesTarget("vagrant-single")
+	contextName := "vagrant-single"
 
-	err := appdeploy.Process(src, target)
+	// Prepare Kubernetes client
+	po := clientcmd.NewDefaultPathOptions()
+
+	c, err := po.GetStartingConfig()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	context, ok := c.Contexts[contextName]
+	if !ok {
+		names := make([]string, 0)
+		for name, _ := range c.Contexts {
+			names = append(names, name)
+		}
+
+		return fmt.Errorf("Unknown context: %s, should be one of: %s", contextName, strings.Join(names, ", "))
+	}
+
+	authinfo, ok := c.AuthInfos[context.AuthInfo]
+	if !ok {
+		return fmt.Errorf("Badly configured context, unknown auth: %s", context.AuthInfo)
+	}
+
+	cluster, ok := c.Clusters[context.Cluster]
+	if !ok {
+		return fmt.Errorf("Badly configured context, unknown cluster: %s", context.Cluster)
+	}
+
+	config := &restclient.Config{
+		Host: cluster.Server,
+		TLSClientConfig: restclient.TLSClientConfig{
+			CAFile:   cluster.CertificateAuthority,
+			CertFile: authinfo.ClientCertificate,
+			KeyFile:  authinfo.ClientKey,
+		},
+	}
+
+	target = appdeploy.NewKubernetesTarget(config)
+
+	return appdeploy.Process(src, target)
 }
