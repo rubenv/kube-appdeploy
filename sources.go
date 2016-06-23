@@ -70,3 +70,7 @@ func (s *FolderSource) Get(name string) (io.ReadCloser, error) {
 func (s *FolderSource) Variables() (*ProcessVariables, error) {
 	return s.variables, nil
 }
+
+func (s *FolderSource) SetVariables(variables *ProcessVariables) {
+	s.variables = variables
+}
