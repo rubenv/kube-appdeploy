@@ -9,6 +9,8 @@ import (
 	"path"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned"
 )
@@ -124,6 +126,34 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 	// Copy some vars
 	t.namespace = vars.Namespace
 
+	// Ensure we have the needed namespace
+	nsClient := t.client.Namespaces()
+
+	create := false
+	_, err = nsClient.Get(t.namespace)
+	if err != nil {
+		ignore := false
+		if e, ok := err.(*errors.StatusError); ok {
+			if e.ErrStatus.Reason == "NotFound" {
+				ignore = true
+				create = true
+			}
+		}
+		if !ignore {
+			return err
+		}
+	}
+	if create {
+		_, err = nsClient.Create(&api.Namespace{
+			ObjectMeta: api.ObjectMeta{
+				Name: t.namespace,
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -186,9 +216,9 @@ func (t *KubernetesTarget) runKubeCtl(stdin []byte, args ...string) (string, err
 	if stdin != nil {
 		cmd.Stdin = bytes.NewReader(stdin)
 	}
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Kubectl failed: %s, %s", err, out)
 	}
 	return string(out), nil
 }
