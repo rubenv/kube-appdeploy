@@ -126,6 +126,7 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 
 	// Copy some vars
 	t.namespace = vars.Namespace
+	t.kubectl = kubectl.NewKubeCtl(t.config, t.namespace)
 
 	// Ensure we have the needed namespace
 	nsClient := t.client.Namespaces()
