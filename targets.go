@@ -1,13 +1,13 @@
 package appdeploy
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
+
+	"github.com/rubenv/kube-appdeploy/kubectl"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -104,6 +104,7 @@ func (t *FolderTarget) Cleanup(items []Manifest) error {
 type KubernetesTarget struct {
 	config    *restclient.Config
 	client    *unversioned.Client
+	kubectl   *kubectl.KubeCtl
 	namespace string
 }
 
@@ -210,40 +211,5 @@ func (t *KubernetesTarget) cleanType(items []Manifest, ct string) error {
 }
 
 func (t *KubernetesTarget) runKubeCtl(stdin []byte, args ...string) (string, error) {
-	args = append(t.configArgs(), args...)
-
-	cmd := exec.Command("kubectl", args...)
-	if stdin != nil {
-		cmd.Stdin = bytes.NewReader(stdin)
-	}
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("Kubectl failed: %s, %s", err, out)
-	}
-	return string(out), nil
-}
-
-func (t *KubernetesTarget) configArgs() []string {
-	args := []string{
-		"--namespace", t.namespace,
-	}
-
-	cfg := t.config
-	if cfg.Host != "" {
-		args = append(args, "--server", cfg.Host)
-	}
-	if cfg.CAFile != "" {
-		args = append(args, "--certificate-authority", cfg.CAFile)
-	}
-	if cfg.CertFile != "" {
-		args = append(args, "--client-certificate", cfg.CertFile)
-	}
-	if cfg.CertFile != "" {
-		args = append(args, "--client-key", cfg.KeyFile)
-	}
-	if cfg.BearerToken != "" {
-		args = append(args, "--token", cfg.BearerToken)
-	}
-
-	return args
+	return t.kubectl.Run(stdin, args...)
 }
