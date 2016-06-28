@@ -42,6 +42,10 @@ func NewProcessVariables() *ProcessVariables {
 }
 
 func Process(src ManifestSource, target Target) error {
+	return ProcessWithFuncs(src, target, nil)
+}
+
+func ProcessWithFuncs(src ManifestSource, target Target, funcs template.FuncMap) error {
 	names, err := src.Names()
 	if err != nil {
 		return err
@@ -81,7 +85,7 @@ func Process(src ManifestSource, target Target) error {
 		n := name
 		go func() {
 			defer wg.Done()
-			m, e := process(src, vars, n, target)
+			m, e := process(src, vars, n, target, funcs)
 			if e != nil {
 				err = e
 			}
@@ -104,7 +108,7 @@ func Process(src ManifestSource, target Target) error {
 	return nil
 }
 
-func process(src ManifestSource, vars *ProcessVariables, name string, target Target) (*Manifest, error) {
+func process(src ManifestSource, vars *ProcessVariables, name string, target Target, funcs template.FuncMap) (*Manifest, error) {
 	m, err := src.Get(name)
 	if err != nil {
 		return nil, err
@@ -117,7 +121,7 @@ func process(src ManifestSource, vars *ProcessVariables, name string, target Tar
 		return nil, err
 	}
 
-	tpl, err := template.New(name).Parse(string(data))
+	tpl, err := template.New(name).Funcs(funcs).Parse(string(data))
 	if err != nil {
 		return nil, err
 	}
