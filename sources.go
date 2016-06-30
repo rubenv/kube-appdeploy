@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	"gopkg.in/yaml.v1"
 )
@@ -54,7 +55,7 @@ func (s *FolderSource) Names() ([]string, error) {
 			continue
 		}
 
-		if !file.IsDir() {
+		if !file.IsDir() && strings.HasSuffix(name, ".yaml") {
 			names = append(names, name)
 		}
 	}
