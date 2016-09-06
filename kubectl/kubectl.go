@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"os/exec"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/client-go/1.4/rest"
 )
 
 type KubeCtl struct {
-	config    *restclient.Config
+	config    *rest.Config
 	namespace string
 }
 
-func NewKubeCtl(config *restclient.Config, namespace string) *KubeCtl {
+func NewKubeCtl(config *rest.Config, namespace string) *KubeCtl {
 	return &KubeCtl{
 		config:    config,
 		namespace: namespace,

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/client-go/1.4/rest"
+	"k8s.io/client-go/1.4/tools/clientcmd"
 
 	"github.com/rubenv/kube-appdeploy"
 )
@@ -63,9 +63,9 @@ func do() error {
 		return fmt.Errorf("Badly configured context, unknown cluster: %s", context.Cluster)
 	}
 
-	config := &restclient.Config{
+	config := &rest.Config{
 		Host: cluster.Server,
-		TLSClientConfig: restclient.TLSClientConfig{
+		TLSClientConfig: rest.TLSClientConfig{
 			CAFile:   cluster.CertificateAuthority,
 			CertFile: authinfo.ClientCertificate,
 			KeyFile:  authinfo.ClientKey,

@@ -9,10 +9,10 @@ import (
 
 	"github.com/rubenv/kube-appdeploy/kubectl"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/client-go/1.4/kubernetes"
+	"k8s.io/client-go/1.4/pkg/api/errors"
+	"k8s.io/client-go/1.4/pkg/api/v1"
+	"k8s.io/client-go/1.4/rest"
 )
 
 var CleanTypes = []string{
@@ -102,22 +102,22 @@ func (t *FolderTarget) Cleanup(items []Manifest) error {
 // ---------- Kubernetes ----------
 
 type KubernetesTarget struct {
-	config    *restclient.Config
-	client    *unversioned.Client
+	config    *rest.Config
+	client    *kubernetes.Clientset
 	kubectl   *kubectl.KubeCtl
 	namespace string
 }
 
 var _ Target = &KubernetesTarget{}
 
-func NewKubernetesTarget(config *restclient.Config) *KubernetesTarget {
+func NewKubernetesTarget(config *rest.Config) *KubernetesTarget {
 	return &KubernetesTarget{
 		config: config,
 	}
 }
 
 func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
-	client, err := unversioned.New(t.config)
+	client, err := kubernetes.NewForConfig(t.config)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 	t.kubectl = kubectl.NewKubeCtl(t.config, t.namespace)
 
 	// Ensure we have the needed namespace
-	nsClient := t.client.Namespaces()
+	nsClient := t.client.Core().Namespaces()
 
 	create := false
 	_, err = nsClient.Get(t.namespace)
@@ -146,8 +146,8 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 		}
 	}
 	if create {
-		_, err = nsClient.Create(&api.Namespace{
-			ObjectMeta: api.ObjectMeta{
+		_, err = nsClient.Create(&v1.Namespace{
+			ObjectMeta: v1.ObjectMeta{
 				Name: t.namespace,
 			},
 		})
