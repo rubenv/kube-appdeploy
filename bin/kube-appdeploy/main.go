@@ -64,7 +64,8 @@ func do() error {
 	}
 
 	config := &rest.Config{
-		Host: cluster.Server,
+		Host:        cluster.Server,
+		BearerToken: authinfo.Token,
 		TLSClientConfig: rest.TLSClientConfig{
 			CAFile:   cluster.CertificateAuthority,
 			CertFile: authinfo.ClientCertificate,
