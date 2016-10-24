@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"k8s.io/client-go/1.4/rest"
+	"k8s.io/client-go/rest"
 )
 
 type KubeCtl struct {

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/client-go/1.4/rest"
-	"k8s.io/client-go/1.4/tools/clientcmd"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/rubenv/kube-appdeploy"
 )
