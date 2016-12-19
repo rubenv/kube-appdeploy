@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/v1"
+	meta_v1 "k8s.io/client-go/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
 	"github.com/rubenv/kube-appdeploy/kubectl"
@@ -132,7 +133,7 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 	nsClient := t.client.Core().Namespaces()
 
 	create := false
-	_, err = nsClient.Get(t.namespace)
+	_, err = nsClient.Get(t.namespace, meta_v1.GetOptions{})
 	if err != nil {
 		ignore := false
 		if e, ok := err.(*errors.StatusError); ok {
