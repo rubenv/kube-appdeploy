@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/errors"
@@ -13,6 +14,7 @@ import (
 	meta_v1 "k8s.io/client-go/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
+	"github.com/eapache/go-resiliency/retrier"
 	"github.com/rubenv/kube-appdeploy/kubectl"
 )
 
@@ -161,20 +163,17 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 	if len(vars.ImagePullSecrets) > 0 {
 		saClient := t.client.Core().ServiceAccounts(t.namespace)
 
-		create := false
-		sa, err := saClient.Get("default", meta_v1.GetOptions{})
-		if err != nil {
-			ignore := false
-			if e, ok := err.(*errors.StatusError); ok {
-				if e.ErrStatus.Reason == "NotFound" {
-					ignore = true
-					create = true
-				}
-			}
-			if !ignore {
+		var sa *v1.ServiceAccount
+		// Account isn't always available right away, but it gets created in the end, just wait for it
+		r := retrier.New(retrier.ConstantBackoff(10, 1*time.Second), nil)
+		err := r.Run(func() error {
+			s, err := saClient.Get("default", meta_v1.GetOptions{})
+			if err != nil {
 				return err
 			}
-		}
+			sa = s
+			return nil
+		})
 
 		secrets := make([]v1.LocalObjectReference, 0)
 		for _, s := range vars.ImagePullSecrets {
@@ -183,22 +182,10 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 			})
 		}
 
-		if create {
-			_, err = saClient.Create(&v1.ServiceAccount{
-				ObjectMeta: v1.ObjectMeta{
-					Name: "default",
-				},
-				ImagePullSecrets: secrets,
-			})
-			if err != nil {
-				return err
-			}
-		} else {
-			sa.ImagePullSecrets = secrets
-			_, err = saClient.Update(sa)
-			if err != nil {
-				return err
-			}
+		sa.ImagePullSecrets = secrets
+		_, err = saClient.Update(sa)
+		if err != nil {
+			return err
 		}
 	}
 
