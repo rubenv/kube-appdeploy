@@ -31,8 +31,9 @@ type Metadata struct {
 }
 
 type ProcessVariables struct {
-	Namespace string
-	Variables map[string]interface{}
+	Namespace        string
+	ImagePullSecrets []string
+	Variables        map[string]interface{}
 }
 
 func NewProcessVariables() *ProcessVariables {

@@ -157,6 +157,29 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 		}
 	}
 
+	// Add the image pull secrets
+	if len(vars.ImagePullSecrets) > 0 {
+		saClient := t.client.Core().ServiceAccounts(t.namespace)
+
+		sa, err := saClient.Get("default", meta_v1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		secrets := make([]v1.LocalObjectReference, 0)
+		for _, s := range vars.ImagePullSecrets {
+			secrets = append(secrets, v1.LocalObjectReference{
+				Name: s,
+			})
+		}
+		sa.ImagePullSecrets = secrets
+
+		_, err = saClient.Update(sa)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
