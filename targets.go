@@ -161,9 +161,19 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 	if len(vars.ImagePullSecrets) > 0 {
 		saClient := t.client.Core().ServiceAccounts(t.namespace)
 
+		create := false
 		sa, err := saClient.Get("default", meta_v1.GetOptions{})
 		if err != nil {
-			return err
+			ignore := false
+			if e, ok := err.(*errors.StatusError); ok {
+				if e.ErrStatus.Reason == "NotFound" {
+					ignore = true
+					create = true
+				}
+			}
+			if !ignore {
+				return err
+			}
 		}
 
 		secrets := make([]v1.LocalObjectReference, 0)
@@ -172,11 +182,23 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 				Name: s,
 			})
 		}
-		sa.ImagePullSecrets = secrets
 
-		_, err = saClient.Update(sa)
-		if err != nil {
-			return err
+		if create {
+			_, err = saClient.Create(&v1.ServiceAccount{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "default",
+				},
+				ImagePullSecrets: secrets,
+			})
+			if err != nil {
+				return err
+			}
+		} else {
+			sa.ImagePullSecrets = secrets
+			_, err = saClient.Update(sa)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
