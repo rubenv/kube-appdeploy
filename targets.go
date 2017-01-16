@@ -21,6 +21,7 @@ import (
 var CleanTypes = []string{
 	"deployment",
 	"service",
+	"cronjob",
 }
 
 type Target interface {
