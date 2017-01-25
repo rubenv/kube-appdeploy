@@ -32,7 +32,7 @@ func (t *KubeCtl) Run(stdin []byte, args ...string) (string, error) {
 		errmsg := err.Error()
 		exiterr, ok := err.(*exec.ExitError)
 		if ok {
-			errmsg = string(exiterr.Stderr)
+			errmsg = fmt.Sprintf("%s: %s", exitmsg, string(exiterr.Stderr))
 		}
 		return "", fmt.Errorf("Kubectl %v failed: %s, %s", args, errmsg, out)
 	}
