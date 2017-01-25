@@ -33,6 +33,7 @@ type Metadata struct {
 type ProcessVariables struct {
 	Namespace        string
 	ImagePullSecrets []string
+	ManageCronjobs   bool
 	Variables        map[string]interface{}
 }
 

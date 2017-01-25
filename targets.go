@@ -106,10 +106,11 @@ func (t *FolderTarget) Cleanup(items []Manifest) error {
 // ---------- Kubernetes ----------
 
 type KubernetesTarget struct {
-	config    *rest.Config
-	client    *kubernetes.Clientset
-	kubectl   *kubectl.KubeCtl
-	namespace string
+	config         *rest.Config
+	client         *kubernetes.Clientset
+	kubectl        *kubectl.KubeCtl
+	namespace      string
+	manageCronjobs bool
 }
 
 var _ Target = &KubernetesTarget{}
@@ -131,6 +132,7 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 	// Copy some vars
 	t.namespace = vars.Namespace
 	t.kubectl = kubectl.NewKubeCtl(t.config, t.namespace)
+	t.manageCronjobs = vars.ManageCronjobs
 
 	// Ensure we have the needed namespace
 	nsClient := t.client.Core().Namespaces()
@@ -200,6 +202,9 @@ func (t *KubernetesTarget) Apply(m Manifest, data []byte) error {
 
 func (t *KubernetesTarget) Cleanup(items []Manifest) error {
 	for _, ct := range CleanTypes {
+		if ct == "cronjob" && !t.manageCronjobs {
+			continue
+		}
 		err := t.cleanType(items, ct)
 		if err != nil {
 			return err
