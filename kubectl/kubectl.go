@@ -27,9 +27,14 @@ func (t *KubeCtl) Run(stdin []byte, args ...string) (string, error) {
 	if stdin != nil {
 		cmd.Stdin = bytes.NewReader(stdin)
 	}
-	out, err := cmd.CombinedOutput()
+	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("Kubectl failed: %s, %s", err, out)
+		errmsg := err.Error()
+		exiterr, ok := err.(*exec.ExitError)
+		if ok {
+			errmsg = fmt.Sprintf("%s: %s", exitmsg, string(exiterr.Stderr))
+		}
+		return "", fmt.Errorf("Kubectl %v failed: %s, %s", args, errmsg, out)
 	}
 	return string(out), nil
 }
