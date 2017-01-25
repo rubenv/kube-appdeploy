@@ -194,6 +194,26 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 }
 
 func (t *KubernetesTarget) Apply(m Manifest, data []byte) error {
+	// Temporary fix for https://github.com/kubernetes/kubernetes/issues/35149
+	// If a cronjob is applied, an error occurs
+	// Thus we delete the cronjob first if it exists
+	if m.Kind == "CronJob" {
+		out, err := t.runKubeCtl(nil, "get", "cronjob", "-o", "name")
+		if err != nil {
+			return err
+		}
+		lines := strings.Split(strings.TrimSpace(out), "\n")
+		searchline := fmt.Sprintf("cronjob/%s", m.Metadata.Name)
+		for _, line := range lines {
+			if line == searchline {
+				_, err := t.runKubeCtl(nil, "delete", "cronjob", m.Metadata.Name)
+				if err != nil {
+					return err
+				}
+				break
+			}
+		}
+	}
 	_, err := t.runKubeCtl(data, "apply", "-f", "-")
 	return err
 }
