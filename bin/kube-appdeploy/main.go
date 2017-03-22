@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	flags "github.com/jessevdk/go-flags"
+	"github.com/kr/pretty"
 	"github.com/rubenv/kube-appdeploy"
 )
 
@@ -19,21 +20,30 @@ func main() {
 	}
 }
 
+type GlobalOptions struct {
+	Context string `short:"c" long:"context" description:"Kubernetes context to use"`
+
+	Args struct {
+		Folder string `positional-arg-name:"folder" description:"Path to the configuration files"`
+	} `positional-args:"yes" required:"yes"`
+}
+
+var globalOpts = &GlobalOptions{}
+var parser = flags.NewParser(globalOpts, flags.Default)
+
 func do() error {
+	_, err := parser.Parse()
+	if e, ok := err.(*flags.Error); ok && e.Type == flags.ErrHelp {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
 	var target appdeploy.Target
-	src := appdeploy.NewFolderSource(os.Args[1])
+	src := appdeploy.NewFolderSource(globalOpts.Args.Folder)
 
-	/*
-		folder := "/Users/ruben/Desktop/out"
-
-		if folder == "" {
-			log.Fatal("No output folder specified")
-		}
-
-		target = appdeploy.NewFolderTarget(folder)
-	*/
-
-	contextName := "vagrant-single"
+	contextName := globalOpts.Context
 
 	// Prepare Kubernetes client
 	po := clientcmd.NewDefaultPathOptions()
@@ -42,6 +52,8 @@ func do() error {
 	if err != nil {
 		return err
 	}
+
+	pretty.Log(c)
 
 	context, ok := c.Contexts[contextName]
 	if !ok {
