@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/v1"
-	meta_v1 "k8s.io/client-go/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
 	"github.com/eapache/go-resiliency/retrier"
@@ -138,7 +138,7 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 	nsClient := t.client.Core().Namespaces()
 
 	create := false
-	_, err = nsClient.Get(t.namespace, meta_v1.GetOptions{})
+	_, err = nsClient.Get(t.namespace, metav1.GetOptions{})
 	if err != nil {
 		ignore := false
 		if e, ok := err.(*errors.StatusError); ok {
@@ -153,7 +153,7 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 	}
 	if create {
 		_, err = nsClient.Create(&v1.Namespace{
-			ObjectMeta: v1.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: t.namespace,
 			},
 		})
@@ -170,7 +170,7 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 		// Account isn't always available right away, but it gets created in the end, just wait for it
 		r := retrier.New(retrier.ConstantBackoff(10, 1*time.Second), nil)
 		err := r.Run(func() error {
-			s, err := saClient.Get("default", meta_v1.GetOptions{})
+			s, err := saClient.Get("default", metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
