@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	flags "github.com/jessevdk/go-flags"
-	"github.com/kr/pretty"
 	"github.com/rubenv/kube-appdeploy"
 )
 
@@ -53,7 +52,9 @@ func do() error {
 		return err
 	}
 
-	pretty.Log(c)
+	if contextName == "" {
+		contextName = c.CurrentContext
+	}
 
 	context, ok := c.Contexts[contextName]
 	if !ok {
