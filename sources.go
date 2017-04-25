@@ -21,16 +21,15 @@ var _ ManifestSource = &FolderSource{}
 type FolderSource struct {
 	Path      string
 	variables *ProcessVariables
+	names     []string
 }
 
-func NewFolderSource(path string) *FolderSource {
-	return &FolderSource{
-		Path: path,
+func NewFolderSource(p string) (*FolderSource, error) {
+	src := &FolderSource{
+		Path: p,
 	}
-}
 
-func (s *FolderSource) Names() ([]string, error) {
-	files, err := ioutil.ReadDir(s.Path)
+	files, err := ioutil.ReadDir(src.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +40,7 @@ func (s *FolderSource) Names() ([]string, error) {
 		if name == "variables.yaml" {
 			vars := NewProcessVariables()
 
-			data, err := ioutil.ReadFile(path.Join(s.Path, name))
+			data, err := ioutil.ReadFile(path.Join(src.Path, name))
 			if err != nil {
 				return nil, err
 			}
@@ -51,7 +50,7 @@ func (s *FolderSource) Names() ([]string, error) {
 				return nil, err
 			}
 
-			s.variables = vars
+			src.variables = vars
 			continue
 		}
 
@@ -59,8 +58,13 @@ func (s *FolderSource) Names() ([]string, error) {
 			names = append(names, name)
 		}
 	}
+	src.names = names
 
-	return names, nil
+	return src, nil
+}
+
+func (s *FolderSource) Names() ([]string, error) {
+	return s.names, nil
 }
 
 func (s *FolderSource) Get(name string) (io.ReadCloser, error) {
@@ -74,4 +78,8 @@ func (s *FolderSource) Variables() (*ProcessVariables, error) {
 
 func (s *FolderSource) SetVariables(variables *ProcessVariables) {
 	s.variables = variables
+}
+
+func (s *FolderSource) AddVariable(key string, val interface{}) {
+	s.variables.Variables[key] = val
 }

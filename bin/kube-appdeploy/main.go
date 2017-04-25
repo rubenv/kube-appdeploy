@@ -20,7 +20,8 @@ func main() {
 }
 
 type GlobalOptions struct {
-	Context string `short:"c" long:"context" description:"Kubernetes context to use"`
+	Context   string            `short:"c" long:"context" description:"Kubernetes context to use"`
+	Variables map[string]string `short:"v" long:"variable" description:"Extra variables to set"`
 
 	Args struct {
 		Folder string `positional-arg-name:"folder" description:"Path to the configuration files"`
@@ -40,7 +41,14 @@ func do() error {
 	}
 
 	var target appdeploy.Target
-	src := appdeploy.NewFolderSource(globalOpts.Args.Folder)
+	src, err := appdeploy.NewFolderSource(globalOpts.Args.Folder)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range globalOpts.Variables {
+		src.AddVariable(k, v)
+	}
 
 	contextName := globalOpts.Context
 
