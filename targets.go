@@ -174,6 +174,9 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 			if err != nil {
 				return err
 			}
+			if s == nil {
+				return fmt.Errorf("Service account not found (yet)")
+			}
 			sa = s
 			return nil
 		})
