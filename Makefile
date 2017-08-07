@@ -1,4 +1,6 @@
-.PHONY: get-deps test
+.PHONY: all get-deps test
+
+all: get-deps test
 
 get-deps:
 	go get -t ./...
