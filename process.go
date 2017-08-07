@@ -102,12 +102,7 @@ func ProcessWithFuncs(src ManifestSource, target Target, funcs template.FuncMap)
 		return err
 	}
 
-	err = target.Cleanup(seen)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return target.Cleanup(seen)
 }
 
 func process(src ManifestSource, vars *ProcessVariables, name string, target Target, funcs template.FuncMap) (*Manifest, error) {
