@@ -180,6 +180,9 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 			sa = s
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 
 		secrets := make([]v1.LocalObjectReference, 0)
 		for _, s := range vars.ImagePullSecrets {
