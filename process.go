@@ -79,6 +79,7 @@ func ProcessWithFuncs(src ManifestSource, target Target, funcs template.FuncMap)
 	}
 
 	seen := make([]Manifest, 0)
+	var seenMutex sync.Mutex
 	wg := sync.WaitGroup{}
 	wg.Add(len(names))
 
@@ -92,7 +93,9 @@ func ProcessWithFuncs(src ManifestSource, target Target, funcs template.FuncMap)
 				err = e
 			}
 			if m != nil {
+				seenMutex.Lock()
 				seen = append(seen, *m)
+				seenMutex.Unlock()
 			}
 		}()
 	}
