@@ -1,8 +1,10 @@
 package appdeploy
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -239,8 +241,17 @@ func (t *KubernetesTarget) Cleanup(items []Manifest) error {
 	return nil
 }
 
+type itemList struct {
+	Items []struct {
+		Kind     string `json:"kind"`
+		Metadata struct {
+			Name string `json:"name"`
+		} `json:"metadata"`
+	} `json:"items"`
+}
+
 func (t *KubernetesTarget) cleanType(items []Manifest, ct string) error {
-	out, err := t.runKubeCtl(nil, "get", ct, "-o", "name")
+	out, err := t.runKubeCtl(nil, "get", ct, "-o", "json")
 	if err != nil {
 		return err
 	}
@@ -252,21 +263,24 @@ func (t *KubernetesTarget) cleanType(items []Manifest, ct string) error {
 		}
 	}
 
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	for _, line := range lines {
-		if line == "" {
-			continue
-		}
+	seen := &itemList{}
+	err = json.Unmarshal([]byte(out), &seen)
+	if err != nil {
+		return err
+	}
 
+	for _, item := range seen.Items {
 		found := false
+		key := fmt.Sprintf("%s/%s", strings.ToLower(item.Kind), item.Metadata.Name)
 		for _, k := range known {
-			if line == k {
+			if key == k {
 				found = true
 			}
 		}
 
 		if !found {
-			_, err := t.runKubeCtl(nil, "delete", line)
+			log.Printf("Deleting %s", key)
+			_, err := t.runKubeCtl(nil, "delete", item.Kind, item.Metadata.Name)
 			if err != nil {
 				return err
 			}
