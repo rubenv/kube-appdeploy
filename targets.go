@@ -210,7 +210,7 @@ func (t *KubernetesTarget) Apply(m Manifest, data []byte) error {
 	if m.Kind == "CronJob" {
 		out, err := t.runKubeCtl(nil, "get", "cronjob", "-o", "name")
 		if err != nil {
-			return err
+			return fmt.Errorf("Cronjob fetch failed: %s\n\nFor manifest:\n%s", err, string(data))
 		}
 		lines := strings.Split(strings.TrimSpace(out), "\n")
 		searchline := fmt.Sprintf("cronjob/%s", m.Metadata.Name)
