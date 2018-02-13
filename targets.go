@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strings"
@@ -279,7 +278,6 @@ func (t *KubernetesTarget) cleanType(items []Manifest, ct string) error {
 		}
 
 		if !found {
-			log.Printf("Deleting %s", key)
 			_, err := t.runKubeCtl(nil, "delete", item.Kind, item.Metadata.Name)
 			if err != nil {
 				return err
