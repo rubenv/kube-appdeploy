@@ -26,7 +26,8 @@ type FolderSource struct {
 
 func NewFolderSource(p string) (*FolderSource, error) {
 	src := &FolderSource{
-		Path: p,
+		Path:      p,
+		variables: NewProcessVariables(),
 	}
 
 	files, err := ioutil.ReadDir(src.Path)
