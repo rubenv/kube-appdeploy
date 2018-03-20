@@ -80,7 +80,3 @@ func (s *FolderSource) Variables() (*ProcessVariables, error) {
 func (s *FolderSource) SetVariables(variables *ProcessVariables) {
 	s.variables = variables
 }
-
-func (s *FolderSource) AddVariable(key string, val interface{}) {
-	s.variables.Variables[key] = val
-}

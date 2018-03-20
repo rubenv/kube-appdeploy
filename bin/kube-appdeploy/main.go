@@ -20,8 +20,9 @@ func main() {
 }
 
 type GlobalOptions struct {
-	Context   string            `short:"c" long:"context" description:"Kubernetes context to use"`
-	Variables map[string]string `short:"v" long:"variable" description:"Extra variables to set"`
+	Context     string            `short:"c" long:"context" description:"Kubernetes context to use"`
+	Variables   map[string]string `short:"v" long:"variable" description:"Extra variables to set"`
+	PullSecrets []string          `short:"i" long:"imagepullsecret" description:"Image pull secrets to configure"`
 
 	Args struct {
 		Folder string `positional-arg-name:"folder" description:"Path to the configuration files"`
@@ -46,9 +47,15 @@ func do() error {
 		return err
 	}
 
-	for k, v := range globalOpts.Variables {
-		src.AddVariable(k, v)
+	vars, err := src.Variables()
+	if err != nil {
+		return err
 	}
+
+	for k, v := range globalOpts.Variables {
+		vars.Variables[k] = v
+	}
+	vars.ImagePullSecrets = globalOpts.PullSecrets
 
 	contextName := globalOpts.Context
 
