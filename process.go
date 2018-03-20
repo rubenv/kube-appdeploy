@@ -2,6 +2,7 @@ package appdeploy
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -51,6 +52,10 @@ func ProcessWithFuncs(src ManifestSource, target Target, funcs template.FuncMap)
 	names, err := src.Names()
 	if err != nil {
 		return err
+	}
+
+	if len(names) == 0 {
+		return errors.New("Cowardly refusing a source with 0 manifests, this would delete everything")
 	}
 
 	vars, err := src.Variables()
