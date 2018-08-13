@@ -61,6 +61,7 @@ func do() error {
 
 	// Prepare Kubernetes client
 	po := clientcmd.NewDefaultPathOptions()
+	po.LoadingRules.DoNotResolvePaths = false
 
 	c, err := po.GetStartingConfig()
 	if err != nil {
