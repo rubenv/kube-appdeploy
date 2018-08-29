@@ -167,33 +167,28 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 	if len(vars.ImagePullSecrets) > 0 {
 		saClient := t.client.Core().ServiceAccounts(t.namespace)
 
-		var sa *v1.ServiceAccount
 		// Account isn't always available right away, but it gets created in the end, just wait for it
-		r := retrier.New(retrier.ConstantBackoff(10, 1*time.Second), nil)
+		r := retrier.New(retrier.ConstantBackoff(20, 1*time.Second), nil)
 		err := r.Run(func() error {
-			s, err := saClient.Get("default", metav1.GetOptions{})
+			sa, err := saClient.Get("default", metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
-			if s == nil {
+			if sa == nil {
 				return fmt.Errorf("Service account not found (yet)")
 			}
-			sa = s
-			return nil
-		})
-		if err != nil {
+
+			secrets := make([]v1.LocalObjectReference, 0)
+			for _, s := range vars.ImagePullSecrets {
+				secrets = append(secrets, v1.LocalObjectReference{
+					Name: s,
+				})
+			}
+
+			sa.ImagePullSecrets = secrets
+			_, err = saClient.Update(sa)
 			return err
-		}
-
-		secrets := make([]v1.LocalObjectReference, 0)
-		for _, s := range vars.ImagePullSecrets {
-			secrets = append(secrets, v1.LocalObjectReference{
-				Name: s,
-			})
-		}
-
-		sa.ImagePullSecrets = secrets
-		_, err = saClient.Update(sa)
+		})
 		if err != nil {
 			return err
 		}
