@@ -107,7 +107,7 @@ func (t *FolderTarget) Cleanup(items []Manifest) error {
 // ---------- Kubernetes ----------
 
 type KubernetesTarget struct {
-	config         *rest.Config
+	Config         *rest.Config
 	client         *kubernetes.Clientset
 	kubectl        *kubectl.KubeCtl
 	namespace      string
@@ -118,12 +118,12 @@ var _ Target = &KubernetesTarget{}
 
 func NewKubernetesTarget(config *rest.Config) *KubernetesTarget {
 	return &KubernetesTarget{
-		config: config,
+		Config: config,
 	}
 }
 
 func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
-	client, err := kubernetes.NewForConfig(t.config)
+	client, err := kubernetes.NewForConfig(t.Config)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (t *KubernetesTarget) Prepare(vars *ProcessVariables) error {
 
 	// Copy some vars
 	t.namespace = vars.Namespace
-	t.kubectl = kubectl.NewKubeCtl(t.config, t.namespace)
+	t.kubectl = kubectl.NewKubeCtl(t.Config, t.namespace)
 	t.manageCronjobs = vars.ManageCronjobs
 
 	// Ensure we have the needed namespace
